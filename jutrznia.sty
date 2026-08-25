@@ -1,0 +1,48 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{jutrznia}[2026/08/25 Automatyczny pakiet do Jutrzni]
+
+\RequirePackage{xcolor}
+\RequirePackage{geometry}
+\RequirePackage{envirboze  boze hello n} % Do tworzenia środowisk zbierających tekst
+
+% Definicje kolorów liturgicznych
+\definecolor{liturgicznyCzerwony}{HTML}{C0392B}
+
+% Kolorowe symbole
+\newcommand{\gwiazdka}{{\color{liturgicznyCzerwony}\textbf{*}}}
+\newcommand{\krzyzyk}{{\color{liturgicznyCzerwony}\textbf{\dag}}}
+
+% 1. Komendy strukturalne
+\newcommand{\rubryka}[1]{%
+    \par\vspace{0.5em}\noindent\textit{\color{liturgicznyCzerwony}#1}\par\vspace{0.5em}%
+}
+
+\newcommand{\wersik}[2]{%
+    \par\noindent\textbf{W.} #1 \\
+    \noindent\textbf{O.} #2\par
+}
+
+\newcommand{\antyfona}[1]{%
+    \par\noindent\textbf{Ant.:} #1\par
+}
+
+% 2. Środowisko do psalmów z automatycznym formatowaniem linii
+% Używa pakietu environ, żeby przetworzyć wklejony blok tekstu.
+% Możemy tutaj zdefiniować, jak zachowują się znaki wewnątrz psalmu.
+
+\ExplSyntaxOn
+% Zabezpieczamy gwiazdkę i krzyżyk wewnątrz psalmu, żeby same się kolorowały
+\NewDocumentEnvironment{psalm}{}{
+    \par\vspace{0.3em}\noindent
+    \ignorespaces
+}{
+    \par\vspace{0.3em}
+}
+\ExplSyntaxOff
+
+% Alternatywne podejście: Makro parsujące pojedynczy wiersz psalmu.
+% Użycie: \wiersz{Pierwsza część przed gwiazdką}{Druga część po gwiazdce}
+% Dzięki temu LaTeX sam wyrówna obie części na szerokość kolumny!
+\newcommand{\wpsalm}[2]{%
+    \noindent #1 \gwiazdka \hspace{1em} #2 \par
+}

@@ -1,0 +1,12 @@
+# Pliki tymczasowe LaTeX-a
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Wygenerowany PDF
+*.pdf
+
+# Konfiguracja edytora
+.vscode/
