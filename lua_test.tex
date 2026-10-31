@@ -1,0 +1,83 @@
+\documentclass{article}
+\usepackage{polski}
+\usepackage{xcolor}
+\usepackage{luacode}
+
+% Definicja koloru MUSI być w LaTeX-ie (przed luacode)
+\definecolor{brewiarzCzerwony}{HTML}{B40000}
+
+
+\begin{luacode*}
+function obsluguj_brewiarz(linia)
+  local spakowana = linia:gsub("%s+$", "")
+  
+  if spakowana == "" then
+    return "%"
+  end
+
+  if spakowana:match("^\\end{brewiarz}") then
+    return linia
+  end
+
+  if wciecie then
+    spakowana = "\\hspace*{2em}" .. spakowana
+  end
+
+  if spakowana:find("%*$") then
+    spakowana = spakowana:gsub("%*$", "\\textcolor{brewiarzCzerwony}{*}")
+    oczekuje_linii_po_gwiazdce = true
+    
+  elseif spakowana:find("†$") then
+    spakowana = spakowana:gsub("†$", "\\textcolor{brewiarzCzerwony}{†}")
+    
+  else
+    if oczekuje_linii_po_gwiazdce then
+      wciecie = not wciecie
+      oczekuje_linii_po_gwiazdce = false
+    end
+  end
+
+  return spakowana .. [[ \\]]
+end
+\end{luacode*}
+
+\newenvironment{brewiarz}{%
+  \par
+  \setlength{\parindent}{0pt}%
+  \directlua{wciecie= false}
+  \directlua{oczekuje_linii_po_gwiazdce = false}
+  \directlua{luatexbase.add_to_callback("process_input_buffer", obsluguj_brewiarz, "brewiarz_filter")}
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "brewiarz_filter")}
+  \par
+}
+
+\begin{document}
+
+\begin{brewiarz}
+Rzekł Pan do Pana mego: *
+"Siądź po mojej prawicy,
+Aż uczynię Twych wrogów *
+podnóżkiem stóp Twoich".
+Pan rozciągnie moc Twego berła ze Syjonu: *
+panuj wśród swych nieprzyjaciół!
+Przy Tobie panowanie w dniu Twego triumfu, †
+w blasku świętości *
+z łona jutrzenki zrodziłem Cię jak rosę.
+Pan przysiągł i tego nie odwoła: *
+"Tyś jest kapłanem na wieki na wzór Melchizedeka".
+Pan jest po Twojej prawicy, *
+zetrze królów w dzień swego gniewu.
+On po drodze pić będzie z potoku, *
+dlatego głowę podniesie.
+Chwała Ojcu i Synowi, *
+i Duchowi Świętemu.
+
+
+
+
+Jak była na początku, teraz i zawsze, *
+i na wieki wieków. Amen.
+\end{brewiarz}
+
+\end{document}
