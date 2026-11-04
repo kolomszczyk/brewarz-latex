@@ -41,6 +41,19 @@ function obsluguj_brewiarz(linia)
 end
 \end{luacode*}
 
+\newcommand{\hourTitle}[2]{%
+  \thispagestyle{plain}%
+  \vspace*{\fill}%
+  \begin{center}
+    {\fontsize{32}{38}\selectfont\bfseries\color{brewiarzCzerwony}#1\par}
+    \vspace{0.25em}
+    {\fontsize{32}{38}\selectfont\bfseries\color{brewiarzCzerwony}#2\par}
+    \vspace{1.8em}
+    {\color{brewiarzCzerwony}\rule{0.8\textwidth}{0.5pt}}
+  \end{center}
+  \vspace*{\fill}
+}
+
 \newcommand{\generujWezwanieKrotkie}{%
   \par\vspace*{\fill}%
   K. \dag\ Boże, wejrzyj ku wspomożeniu memu.\par
@@ -63,6 +76,8 @@ end
 
 \begin{document}
 
+\hourTitle{Nieszpory}{\today}
+\newpage
 \generujWezwanieKrotkie
 \newpage
 \begin{brewiarz}
