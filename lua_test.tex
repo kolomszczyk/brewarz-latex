@@ -3,43 +3,116 @@
 \usepackage{xcolor}
 \usepackage{luacode}
 
-% Definicja koloru MUSI być w LaTeX-ie (przed luacode)
-\definecolor{brewiarzCzerwony}{HTML}{B40000}
+
+\usepackage{geometry}
+\geometry{
+  paper=a5paper,       % lub a4paper / b5paper
+  % Proporcje oszacowane ze zdjęcia dla A5 (148 x 210 mm).
+  % Przeliczenie: mm = procent * wymiar kartki / 100.
+  % Mniejsze marginesy zwiększają obszar tekstu.
+  top=10mm,            % ok. 5% wysokości
+  bottom=18mm,         % ok. 9% wysokości
+  left=12mm,           % lewy margines
+  right=12mm           % prawy margines
+}
+
+% The color must be defined in LaTeX before luacode.
 \definecolor{breviaryRed}{HTML}{B40000}
 
+\newcommand{\sectionTitle}[1]{%
+  \par\medskip
+  \begin{center}
+    {\large\bfseries\color{breviaryRed}#1}
+  \end{center}
+  \vspace{0.4em}%
+}
+
+\newcommand{\hourTitle}[2]{%
+  \thispagestyle{plain}%
+  \vspace*{\fill}%
+  \begin{center}
+    {\fontsize{32}{38}\selectfont\bfseries\color{breviaryRed}#1\par}
+    \vspace{0.25em}
+    {\fontsize{32}{38}\selectfont\bfseries\color{breviaryRed}#2\par}
+    \vspace{1.8em}
+    {\color{breviaryRed}\rule{0.8\textwidth}{0.5pt}}
+  \end{center}
+  \vspace*{\fill}
+}
 
 \begin{luacode*}
-function obsluguj_brewiarz(linia)
-  local spakowana = linia:gsub("%s+$", "")
+local asterisk_marker = "*"
+local cross_marker = "†"
+local block_number = 1
+local indentation = false
+local awaiting_line_after_as erisk = false
+
+local function color_markers(line)
+  line = line:gsub("%*", "\\textcolor{breviaryRed}{*}")
+  line = line:gsub("†", "\\textcolor{breviaryRed}{†}")
+  line = line:gsub("/", "\\textcolor{breviaryRed}{/}")
+  return line
+end
+
+function reset_psalmody_state()
+  block_number = 1
+  indentation = false
+  awaiting_line_after_asterisk = false
+end
+
+function process_breviary_line(line)
+  local trimmed_line = line:gsub("%s+$", "")
   
-  if spakowana == "" then
-    return "%"
+  if trimmed_line == "" then
+    block_number = block_number + 1
+    indentation = false
+    awaiting_line_after_asterisk = false
+    return "\\par\\vspace{\\psalmodyblockskip}%"
   end
 
-  if spakowana:match("^\\end{brewiarz}") then
-    return linia
+  if trimmed_line:match("^\\end{psalmody}") then
+    return line
   end
 
-  if wciecie then
-    spakowana = "\\hspace*{2em}" .. spakowana
+  if trimmed_line:sub(1, 6) == "\\input" then
+    return line
   end
 
-  if spakowana:find("%*$") then
-    spakowana = spakowana:gsub("%*$", "\\textcolor{brewiarzCzerwony}{*}")
-    oczekuje_linii_po_gwiazdce = true
+  local indent_this_line = indentation
+
+  if block_number == 2 then
+    return "\\noindent\\makebox[\\linewidth][c]{\\textcolor{breviaryRed}{\\textbf{"
+      .. trimmed_line .. "}}}\\\\"
+  end
+
+  if trimmed_line:match("^%d+%s+[Aa]nt%.") or trimmed_line:match("^[Aa]nt%.") then
+    trimmed_line = trimmed_line:gsub("^(%d+%s+[Aa]nt%.)", "\\textcolor{breviaryRed}{%1}")
+    trimmed_line = trimmed_line:gsub("^([Aa]nt%.)", "\\textcolor{breviaryRed}{%1}")
+    trimmed_line = color_markers(trimmed_line)
+    return trimmed_line .. [[ \\]]
+  end
+
+  if trimmed_line:sub(-#asterisk_marker) == asterisk_marker then
+    trimmed_line = trimmed_line:sub(1, -#asterisk_marker - 1) .. asterisk_marker
+    awaiting_line_after_asterisk = true
     
-  elseif spakowana:find("†$") then
-    spakowana = spakowana:gsub("†$", "\\textcolor{brewiarzCzerwony}{†}")
+  elseif trimmed_line:sub(-#cross_marker) == cross_marker then
+    trimmed_line = trimmed_line:sub(1, -#cross_marker - 1) .. cross_marker
     
   else
-    if oczekuje_linii_po_gwiazdce then
-      wciecie = not wciecie
-      oczekuje_linii_po_gwiazdce = false
+    if awaiting_line_after_asterisk then
+      indentation = not indentation
+      awaiting_line_after_asterisk = false
     end
   end
 
-  return spakowana .. [[ \\]]
+  trimmed_line = color_markers(trimmed_line)
+  if indent_this_line then
+    trimmed_line = "\\hspace*{2em}" .. trimmed_line
+  end
+  return trimmed_line .. [[ \\]]
 end
+
 function process_hymn_line(line)
   local trimmed_line = line:gsub("%s+$", "")
 
@@ -59,39 +132,21 @@ function process_hymn_line(line)
 
   return "\\noindent\\hspace*{1.2em}" .. trimmed_line .. [[ \\]]
 end
-
 \end{luacode*}
 
-\newcommand{\hourTitle}[2]{%
-  \thispagestyle{plain}%
-  \vspace*{\fill}%
-  \begin{center}
-    {\fontsize{32}{38}\selectfont\bfseries\color{brewiarzCzerwony}#1\par}
-    \vspace{0.25em}
-    {\fontsize{32}{38}\selectfont\bfseries\color{brewiarzCzerwony}#2\par}
-    \vspace{1.8em}
-    {\color{brewiarzCzerwony}\rule{0.8\textwidth}{0.5pt}}
-  \end{center}
-  \vspace*{\fill}
-}
+\newlength{\psalmodyblockskip}
+\setlength{\psalmodyblockskip}{1em}
+\newcounter{psalmodysection}
 
-\newcommand{\generujWezwanieKrotkie}{%
-  \par\vspace*{\fill}%
-  K. \dag\ Boże, wejrzyj ku wspomożeniu memu.\par
-  W. Panie, pośpiesz ku ratunkowi memu.\par
-  Chwała Ojcu i Synowi, i Duchowi Świętemu.\par
-  Jak była na początku, teraz i zawsze,\par
-  i na wieki wieków. Amen. Alleluja.\par
-}
-
-\newenvironment{brewiarz}{%
+\newenvironment{psalmody}{%
   \par
   \setlength{\parindent}{0pt}%
-  \directlua{wciecie= false}
-  \directlua{oczekuje_linii_po_gwiazdce = false}
-  \directlua{luatexbase.add_to_callback("process_input_buffer", obsluguj_brewiarz, "brewiarz_filter")}
+  \stepcounter{psalmodysection}%
+  \sectionTitle{PSALMODIA \Roman{psalmodysection}}%
+  \directlua{reset_psalmody_state()}
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_breviary_line, "psalmody_filter")}
 }{%
-  \directlua{luatexbase.remove_from_callback("process_input_buffer", "brewiarz_filter")}
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "psalmody_filter")}
   \par
 }
 
@@ -99,6 +154,7 @@ end
   \clearpage
   \par
   \setlength{\parindent}{0pt}%
+  \sectionTitle{HYMN}%
   \directlua{luatexbase.add_to_callback("process_input_buffer", process_hymn_line, "hymn_filter")}
 }{%
   \directlua{luatexbase.remove_from_callback("process_input_buffer", "hymn_filter")}
@@ -106,40 +162,40 @@ end
   \clearpage
 }
 
-\begin{document}
+\newcommand{\generateShortInvocation}{%
+  \par\vspace*{\fill}%
+  \sectionTitle{WEZWANIE KRÓTKIE}%
+  \noindent\textcolor{breviaryRed}{K. \dag}\ Boże, wejrzyj ku wspomożeniu memu.\par
+  \noindent\textcolor{breviaryRed}{W.} Panie, pośpiesz ku ratunkowi memu.\par
+  \noindent Chwała Ojcu i Synowi, i Duchowi Świętemu.\par
+  \noindent Jak była na początku, teraz i zawsze,\par
+  \noindent i na wieki wieków. Amen. Alleluja.\par
+}
 
+\begin{document}
+\newpage
 \hourTitle{Nieszpory}{\today}
+\generateShortInvocation
 \newpage
-\generujWezwanieKrotkie
-\newpage
+
 \begin{hymn}
 \input{nieszpory/hymn}
 \end{hymn}
 
-\begin{brewiarz}
-Rzekł Pan do Pana mego: *
-"Siądź po mojej prawicy,
-Aż uczynię Twych wrogów *
-podnóżkiem stóp Twoich".
-Pan rozciągnie moc Twego berła ze Syjonu: *
-panuj wśród swych nieprzyjaciół!
-Przy Tobie panowanie w dniu Twego triumfu, †
-w blasku świętości *
-z łona jutrzenki zrodziłem Cię jak rosę.
-Pan przysiągł i tego nie odwoła: *
-"Tyś jest kapłanem na wieki na wzór Melchizedeka".
-Pan jest po Twojej prawicy, *
-zetrze królów w dzień swego gniewu.
-On po drodze pić będzie z potoku, *
-dlatego głowę podniesie.
-Chwała Ojcu i Synowi, *
-i Duchowi Świętemu.
+\begin{psalmody}
+\input{nieszpory/psalmodia 1}
+\end{psalmody}
 
+\newpage
 
+\begin{psalmody}
+\input{nieszpory/psalmodia 2}
+\end{psalmody}
 
+\newpage  
 
-Jak była na początku, teraz i zawsze, *
-i na wieki wieków. Amen.
-\end{brewiarz}
+\begin{psalmody}
+\input{nieszpory/psalmodia 3}
+\end{psalmody}
 
 \end{document}
