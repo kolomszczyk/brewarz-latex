@@ -5,6 +5,7 @@
 
 % Definicja koloru MUSI być w LaTeX-ie (przed luacode)
 \definecolor{brewiarzCzerwony}{HTML}{B40000}
+\definecolor{breviaryRed}{HTML}{B40000}
 
 
 \begin{luacode*}
@@ -39,6 +40,26 @@ function obsluguj_brewiarz(linia)
 
   return spakowana .. [[ \\]]
 end
+function process_hymn_line(line)
+  local trimmed_line = line:gsub("%s+$", "")
+
+  if trimmed_line == "" then
+    return "\\par\\vspace{0.1em}%"
+  end
+
+  if trimmed_line:match("^\\end{hymn}") or trimmed_line:sub(1, 6) == "\\input" then
+    return line
+  end
+
+  local number, verse = trimmed_line:match("^(%d+)%s+(.*)$")
+  if number then
+    return "\\noindent\\makebox[1.2em][l]{\\textcolor{breviaryRed}{\\textbf{"
+      .. number .. "}}} " .. verse .. [[ \\]]
+  end
+
+  return "\\noindent\\hspace*{1.2em}" .. trimmed_line .. [[ \\]]
+end
+
 \end{luacode*}
 
 \newcommand{\hourTitle}[2]{%
@@ -74,12 +95,27 @@ end
   \par
 }
 
+\newenvironment{hymn}{%
+  \clearpage
+  \par
+  \setlength{\parindent}{0pt}%
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_hymn_line, "hymn_filter")}
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "hymn_filter")}
+  \par
+  \clearpage
+}
+
 \begin{document}
 
 \hourTitle{Nieszpory}{\today}
 \newpage
 \generujWezwanieKrotkie
 \newpage
+\begin{hymn}
+\input{nieszpory/hymn}
+\end{hymn}
+
 \begin{brewiarz}
 Rzekł Pan do Pana mego: *
 "Siądź po mojej prawicy,
