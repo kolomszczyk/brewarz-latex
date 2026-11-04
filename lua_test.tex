@@ -41,6 +41,15 @@ function obsluguj_brewiarz(linia)
 end
 \end{luacode*}
 
+\newcommand{\generujWezwanieKrotkie}{%
+  \par\vspace*{\fill}%
+  K. \dag\ Boże, wejrzyj ku wspomożeniu memu.\par
+  W. Panie, pośpiesz ku ratunkowi memu.\par
+  Chwała Ojcu i Synowi, i Duchowi Świętemu.\par
+  Jak była na początku, teraz i zawsze,\par
+  i na wieki wieków. Amen. Alleluja.\par
+}
+
 \newenvironment{brewiarz}{%
   \par
   \setlength{\parindent}{0pt}%
@@ -54,6 +63,8 @@ end
 
 \begin{document}
 
+\generujWezwanieKrotkie
+\newpage
 \begin{brewiarz}
 Rzekł Pan do Pana mego: *
 "Siądź po mojej prawicy,
