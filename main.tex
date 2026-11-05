@@ -1,5 +1,8 @@
 \documentclass{article}
 \usepackage{polski}
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\newfontfamily\headingfont{Noto Serif}
 \usepackage{xcolor}
 \usepackage{luacode}
 
@@ -23,7 +26,7 @@
 \newcommand{\sectionTitle}[1]{%
   \par\medskip
   \begin{center}
-    {\large\bfseries\color{breviaryRed}#1}
+    {\large\headingfont\bfseries\color{breviaryRed}#1}
   \end{center}
   \vspace{0.4em}%
 }
@@ -32,12 +35,12 @@
   \par\medskip
   \if\relax\detokenize{#2}\relax
     \begin{center}
-      {\large\bfseries\color{breviaryRed}#1}
+      {\large\headingfont\bfseries\color{breviaryRed}#1}
     \end{center}
   \else
     \begin{center}
-      {\large\bfseries\color{breviaryRed}#1\par}
-      {\bfseries\textcolor{breviaryRed}{#2}}
+      {\large\headingfont\bfseries\color{breviaryRed}#1\par}
+      {\headingfont\bfseries\textcolor{breviaryRed}{#2}}
     \end{center}
   \fi
   \vspace{0.4em}%
@@ -84,9 +87,9 @@
   \thispagestyle{plain}%
   \vspace*{\fill}%
   \begin{center}
-    {\fontsize{32}{38}\selectfont\bfseries\color{breviaryRed}#1\par}
+    {\fontsize{32}{38}\selectfont\headingfont\bfseries\color{breviaryRed}#1\par}
     \vspace{0.25em}
-    {\fontsize{32}{38}\selectfont\bfseries\color{breviaryRed}#2\par}
+    {\fontsize{32}{38}\selectfont\headingfont\bfseries\color{breviaryRed}#2\par}
     \vspace{1.8em}
     {\color{breviaryRed}\rule{0.8\textwidth}{0.5pt}}
   \end{center}
