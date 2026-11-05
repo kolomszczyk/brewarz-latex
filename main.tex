@@ -50,7 +50,7 @@
 \newcommand{\liturgicalSlash}{\textcolor{breviaryRed}{/}}
 
 \newcommand{\responsoryLine}[2]{%
-  \noindent\textcolor{breviaryRed}{#1}\hspace{0.3em}#2\par
+  \noindent\makebox[1.7em][l]{\textcolor{breviaryRed}{#1}}#2\par
 }
 
 \newcommand{\antiphonStart}[1]{%
@@ -466,8 +466,8 @@ end
 \newcommand{\generateShortInvocation}{%
   \par\vspace*{\fill}%
   \sectionTitle{WEZWANIE KRÓTKIE}%
-  \noindent\textcolor{breviaryRed}{K. \dag}\ Boże, wejrzyj ku wspomożeniu memu.\par
-  \noindent\textcolor{breviaryRed}{W.} Panie, pośpiesz ku ratunkowi memu.\par
+  \responsoryLine{K. \dag}{Boże, wejrzyj ku wspomożeniu memu.}%
+  \responsoryLine{W.}{Panie, pośpiesz ku ratunkowi memu.}%
   \noindent Chwała Ojcu i Synowi, i Duchowi Świętemu.\par
   \noindent Jak była na początku, teraz i zawsze,\par
   \noindent i na wieki wieków. Amen. Alleluja.\par
