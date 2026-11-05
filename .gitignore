@@ -8,5 +8,9 @@
 # Wygenerowany PDF
 *.pdf
 
+# Rozpakowana zawartość dokumentu ODT
+/odt_extracted/
+*.odt
+
 # Konfiguracja edytora
 .vscode/
