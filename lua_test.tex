@@ -18,6 +18,7 @@
 
 % The color must be defined in LaTeX before luacode.
 \definecolor{breviaryRed}{HTML}{B40000}
+\definecolor{breviaryGreen}{HTML}{008000}
 
 \newcommand{\sectionTitle}[1]{%
   \par\medskip
@@ -25,6 +26,58 @@
     {\large\bfseries\color{breviaryRed}#1}
   \end{center}
   \vspace{0.4em}%
+}
+
+\newcommand{\sectionHeading}[2]{%
+  \par\medskip
+  \if\relax\detokenize{#2}\relax
+    \begin{center}
+      {\large\bfseries\color{breviaryRed}#1}
+    \end{center}
+  \else
+    \begin{center}
+      {\large\bfseries\color{breviaryRed}#1\par}
+      {\bfseries\textcolor{breviaryRed}{#2}}
+    \end{center}
+  \fi
+  \vspace{0.4em}%
+}
+
+\newcommand{\liturgicalStar}{\textcolor{breviaryRed}{*}}
+\newcommand{\liturgicalSlash}{\textcolor{breviaryRed}{/}}
+
+\newcommand{\responsoryLine}[2]{%
+  \noindent\textcolor{breviaryRed}{#1}\hspace{0.3em}#2\par
+}
+
+\newcommand{\antiphonStart}[1]{%
+  \par\noindent\textcolor{breviaryRed}{Ant.} #1\par\medskip
+}
+
+\newcommand{\antiphonEnd}[1]{%
+  \par\smallskip\noindent\textcolor{breviaryRed}{Ant.} #1\par
+}
+
+\newcounter{canticleVerse}
+\newcommand{\canticleAntiphonText}{}
+\newcommand{\setCanticleAntiphon}[1]{%
+  \renewcommand{\canticleAntiphonText}{#1}%
+}
+
+\newcommand{\canticleVerse}[2]{%
+  \stepcounter{canticleVerse}%
+  \ifodd\value{canticleVerse}
+    \noindent
+  \else
+    \noindent\hspace*{1.5em}%
+  \fi
+  #1\ \liturgicalStar\\
+  \ifodd\value{canticleVerse}
+    \noindent
+  \else
+    \noindent\hspace*{1.5em}%
+  \fi
+  #2\par
 }
 
 \newcommand{\hourTitle}[2]{%
@@ -117,7 +170,7 @@ function process_hymn_line(line)
   local trimmed_line = line:gsub("%s+$", "")
 
   if trimmed_line == "" then
-    return "\\par\\vspace{0.1em}%"
+    return "%"
   end
 
   if trimmed_line:match("^\\end{hymn}") or trimmed_line:sub(1, 6) == "\\input" then
@@ -132,6 +185,159 @@ function process_hymn_line(line)
 
   return "\\noindent\\hspace*{1.2em}" .. trimmed_line .. [[ \\]]
 end
+
+local reading_started = false
+local reading_mode = nil
+local responsory_started = false
+local responsory_mode = nil
+
+function reset_reading_state()
+  reading_started = false
+  reading_mode = nil
+end
+
+function process_reading_line(line)
+  local trimmed_line = line:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed_line == "" then
+    if reading_mode ~= "plain" then
+      return line
+    end
+    return "\\par\\smallskip%"
+  end
+  if trimmed_line:match("^\\input") then
+    return line
+  end
+  if reading_mode == nil then
+    reading_mode = trimmed_line:sub(1, 1) == "\\" and "tex" or "plain"
+  end
+  if reading_mode == "tex" then
+    if trimmed_line:sub(1, 1) == "\\" then
+      reading_started = true
+    end
+    return line
+  end
+  if trimmed_line:sub(1, 1) == "\\" then
+    return line
+  end
+  if not reading_started then
+    reading_started = true
+    return "\\sectionHeading{CZYTANIE KRÓTKIE}{" .. trimmed_line .. "}"
+  end
+  return "\\noindent " .. trimmed_line .. "\\par"
+end
+
+function reset_responsory_state()
+  responsory_started = false
+  responsory_mode = nil
+end
+
+function process_responsory_line(line)
+  local trimmed_line = line:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed_line == "" then
+    if responsory_mode ~= "plain" then
+      return line
+    end
+    return "\\par\\smallskip%"
+  end
+  if trimmed_line:match("^\\input") then
+    return line
+  end
+  if responsory_mode == nil then
+    responsory_mode = trimmed_line:sub(1, 1) == "\\" and "tex" or "plain"
+  end
+  if responsory_mode == "tex" then
+    if trimmed_line:sub(1, 1) == "\\" then
+      responsory_started = true
+    end
+    return line
+  end
+  if trimmed_line:sub(1, 1) == "\\" then
+    return line
+  end
+  local output = ""
+  if not responsory_started then
+    responsory_started = true
+    output = "\\sectionTitle{RESPONSORIUM}"
+  end
+  local speaker, text = trimmed_line:match("^(K%.)%s*(.*)$")
+  if not speaker then
+    speaker, text = trimmed_line:match("^(W%.)%s*(.*)$")
+  end
+  if speaker then
+    text = color_markers(text)
+    return output .. "\\responsoryLine{" .. speaker .. "}{" .. text .. "}"
+  end
+  return output .. "\\noindent " .. color_markers(trimmed_line) .. "\\par"
+end
+
+local canticle_antiphon = nil
+
+function reset_canticle_antiphon()
+  canticle_antiphon = nil
+end
+
+function process_canticle_antiphon_line(line)
+  local trimmed_line = line:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed_line == "" then
+    return "%"
+  end
+  if trimmed_line:sub(1, 1) == "\\" then
+    return line
+  end
+
+  local antiphon = trimmed_line:match("^Ant%.%s*(.*)$")
+  if antiphon then
+    if canticle_antiphon ~= nil then
+      error("Plik antyfony pieśni Maryi może zawierać tylko jedną antyfonę")
+    end
+    canticle_antiphon = antiphon
+  elseif canticle_antiphon ~= nil then
+    canticle_antiphon = canticle_antiphon .. " " .. trimmed_line
+  else
+    error("Antyfona pieśni Maryi musi zaczynać się od 'Ant.'")
+  end
+
+  return "\\setCanticleAntiphon{" .. color_markers(canticle_antiphon) .. "}"
+end
+
+function validate_canticle_antiphon()
+  if canticle_antiphon == nil or canticle_antiphon == "" then
+    error("Brak antyfony pieśni Maryi; oczekiwano tekstu zaczynającego się od 'Ant.'")
+  end
+end
+
+function process_prayer_line(line)
+  local trimmed_line = line:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed_line == "" then
+    return "\\par\\smallskip%"
+  end
+  if trimmed_line:match("^\\input") or trimmed_line:match("^\\end{prosby}") then
+    return line
+  end
+  if trimmed_line == "Można użyć krótszej formy próśb." then
+    return "\\noindent\\textcolor{breviaryRed}{Można użyć }\\textcolor{breviaryGreen}{\\textbf{krótszej formy próśb.}}\\par\\medskip"
+  end
+  if trimmed_line:match("^%-") then
+    local request = trimmed_line:gsub("^%-%s*", "")
+    return "\\noindent\\textcolor{breviaryRed}{-} " .. request .. "\\par"
+  end
+  if trimmed_line == "Zachowaj lud swój, o Panie!" then
+    return "\\noindent\\textit{" .. trimmed_line .. "}\\par"
+  end
+  return "\\noindent " .. trimmed_line .. "\\par"
+end
+
+function process_final_prayer_line(line)
+  local trimmed_line = line:gsub("^%s+", ""):gsub("%s+$", "")
+  if trimmed_line == "" then
+    return "\\par\\smallskip%"
+  end
+  if trimmed_line:match("^\\input") or trimmed_line:match("^\\end{modlitwa_koncowa}") then
+    return line
+  end
+  return "\\noindent " .. color_markers(trimmed_line) .. "\\par"
+end
+
 \end{luacode*}
 
 \newlength{\psalmodyblockskip}
@@ -160,6 +366,98 @@ end
   \directlua{luatexbase.remove_from_callback("process_input_buffer", "hymn_filter")}
   \par
   \clearpage
+}
+
+\newenvironment{czytanie}{%
+  \clearpage
+  \begingroup
+  \setlength{\parindent}{0pt}%
+  \directlua{reset_reading_state()}
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_reading_line, "reading_filter")}
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "reading_filter")}
+  \par\medskip\endgroup
+}
+
+\newenvironment{responsorium}{%
+  \par\begingroup
+  \setlength{\parindent}{0pt}%
+  \directlua{reset_responsory_state()}
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_responsory_line, "responsory_filter")}
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "responsory_filter")}
+  \par\medskip\endgroup
+}
+
+\newenvironment{prosby}{%
+  \clearpage
+  \begingroup
+  \setlength{\parindent}{0pt}%
+  \sectionTitle{PROŚBY}%
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_prayer_line, "prayer_filter")}
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "prayer_filter")}
+  \par\medskip\endgroup
+}
+
+\newenvironment{ojcze_nasz}{%
+  \par\begingroup
+  \setlength{\parindent}{0pt}%
+  \sectionTitle{OJCZE NASZ}%
+  \noindent\textcolor{breviaryRed}{W.} Ojcze nasz, któryś jest w niebie,\par
+  święć się imię Twoje;\par
+  przyjdź królestwo Twoje;\par
+  bądź wola Twoja jako w niebie, tak i na ziemi.\par
+  Chleba naszego powszedniego daj nam dzisiaj;\par
+  i odpuść nam nasze winy, jako i my odpuszczamy naszym winowajcom;\par
+  i nie wódź nas na pokuszenie, ale nas zbaw ode złego.\par
+}{%
+  \par\medskip\endgroup
+}
+
+\newenvironment{modlitwa_koncowa}{%
+  \begingroup
+  \setlength{\parindent}{0pt}%
+  \sectionTitle{MODLITWA}%
+  \noindent\hspace*{2em}%
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_final_prayer_line, "final_prayer_filter")}
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "final_prayer_filter")}
+  \par\medskip\endgroup
+}
+
+\newcommand{\zakonczenie}{%
+  \par\begingroup
+  \setlength{\parindent}{0pt}%
+  \sectionTitle{ZAKOŃCZENIE}%
+  Niech nas Pan błogosławi, broni od wszelkiego zła i doprowadzi do życia wiecznego. Amen.\par
+  \endgroup
+}
+
+\newenvironment{piesn_maryji}{%
+  \par\begingroup
+  \setlength{\parindent}{0pt}%
+  \setcounter{canticleVerse}{0}%
+  \directlua{reset_canticle_antiphon()}%
+  \directlua{luatexbase.add_to_callback("process_input_buffer", process_canticle_antiphon_line, "canticle_antiphon_filter")}%
+}{%
+  \directlua{luatexbase.remove_from_callback("process_input_buffer", "canticle_antiphon_filter")}%
+  \directlua{validate_canticle_antiphon()}%
+  \sectionHeading{PIEŚŃ MARYI}{Łk 1, 46-55}%
+  \antiphonStart{\canticleAntiphonText}%
+  \canticleVerse{Wielbi dusza moja Pana}{i raduje się duch mój w Bogu, Zbawicielu moim.}%
+  \canticleVerse{Bo wejrzał na uniżenie swojej Służebnicy.}{Oto bowiem odtąd błogosławić mnie będą wszystkie pokolenia.}%
+  \canticleVerse{Gdyż wielkie rzeczy uczynił mi Wszechmocny,}{a Jego imię jest święte.}%
+  \canticleVerse{Jego miłosierdzie z pokolenia na pokolenie}{nad tymi, którzy się Go boją.}%
+  \canticleVerse{Okazał moc swego ramienia,}{rozproszył pyszniących się zamysłami serc swoich.}%
+  \canticleVerse{Strącił władców z tronu,}{a wywyższył pokornych.}%
+  \canticleVerse{Głodnych nasycił dobrami,}{a bogatych z niczym odprawił.}%
+  \canticleVerse{Ujął się za swoim sługą, Izraelem,}{pomny na swe miłosierdzie,}%
+  \canticleVerse{Jak obiecał naszym ojcom,}{Abrahamowi i jego potomstwu na wieki.}%
+  \canticleVerse{Chwała Ojcu i Synowi,}{i Duchowi Świętemu.}%
+  \canticleVerse{Jak była na początku, teraz i zawsze,}{i na wieki wieków. Amen.}%
+  \antiphonEnd{\canticleAntiphonText}%
+  \par\medskip\endgroup
 }
 
 \newcommand{\generateShortInvocation}{%
@@ -197,5 +495,37 @@ end
 \begin{psalmody}
 \input{nieszpory/psalmodia 3}
 \end{psalmody}
+
+\begin{czytanie}
+\input{nieszpory/czytanie}
+\end{czytanie}
+
+\begin{responsorium}
+\input{nieszpory/responsorium}
+\end{responsorium}
+
+\newpage
+
+\begin{piesn_maryji}
+\input{nieszpory/piesn maryji}
+\end{piesn_maryji}
+
+\newpage
+
+\begin{prosby}
+\input{nieszpory/prosby}
+\end{prosby}
+
+\newpage
+
+\begin{ojcze_nasz}
+
+\end{ojcze_nasz}
+
+\begin{modlitwa_koncowa}
+\input{nieszpory/modlitwa_koncowa}
+\end{modlitwa_koncowa}
+
+\zakonczenie
 
 \end{document}
